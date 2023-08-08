@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Space, Input, Checkbox} from 'antd';
 import { Box, Flex, Text } from "@chakra-ui/react";
 
@@ -23,22 +23,30 @@ for (let i = 0; i < 50; i++) {
 
 
 const App = () => {
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]),
-        [filteredInfo, setFilteredInfo] = useState({}),
-        [sortedInfo, setSortedInfo] = useState({}),
-        [filterTable, setFilterTable] = useState();
+  const [selectedRowKeys, setSelectedRowKeys]  = useState([]),
+        [filteredInfo, setFilteredInfo]        = useState({}),
+        [sortedInfo, setSortedInfo]            = useState({}),
+        [filterTable, setFilterTable]          = useState(),
+        [searchValue, setSearchValue]          = useState('');
 
 
   const handleChange = (pagination, filters, sorter,filteredValue) => {
-    console.log('Various parameters', pagination, filters, sorter);
+
     setFilteredInfo(filters);
     setSortedInfo(sorter);
-    // console.log(sorter)
+
   };
+
+
   const clearAll = () => {
+
     setFilteredInfo({});
     setSortedInfo({});
     setFilterTable(null);
+
+    // Clear the search input
+    setSearchValue('');
+
   };
 
   const columns = [
@@ -111,21 +119,23 @@ const App = () => {
   ];
 
 
-  const allColumnKeys = ["customer_id", "name", "age", "address", "state", "zip_code", "gender", "purchase_date"];
-  const checkBoxData = columns.map((m) => ({ key: m.key, title: m.title }));
+  const allColumnKeys   = ["customer_id", "name", "age", "address", "state", "zip_code", "gender", "purchase_date"];
+  const checkBoxData    = columns.map((m) => ({ key: m.key, title: m.title }));
 
 
-  const [selectedColumnKeys, setSelectedColumnKeys] = useState(allColumnKeys);
-  const [checkedList, setCheckedList] = useState(allColumnKeys);
-  const [indeterminate, setIndeterminate] = useState(true);
-  const [checkAll, setCheckAll] = React.useState(false);
-  const [tableColumns, setTableColumns] = useState(columns);
+  const [selectedColumnKeys, setSelectedColumnKeys]  = useState(allColumnKeys),
+        [checkedList, setCheckedList]                = useState(allColumnKeys),
+        [indeterminate, setIndeterminate]            = useState(true),
+        [checkAll, setCheckAll]                      = React.useState(false),
+        [tableColumns, setTableColumns]              = useState(columns);
+
 
   const onCheckAllChange = (e) => {
     setCheckedList(e.target.checked ? allColumnKeys : []);
     setIndeterminate(false);
     setCheckAll(e.target.checked);
   };
+
 
   function isChecked(value) {
     return checkedList.includes(value);
@@ -167,6 +177,7 @@ const App = () => {
     return () => {};
   }, [selectedColumnKeys, sortedInfo]);
 
+
   const generateTableColumns = (selectedColumnKeys) => {
     return selectedColumnKeys.map((key) => {
       const originalColumn = columns.find((col) => col.key === key);
@@ -183,7 +194,8 @@ const App = () => {
 
 
   const handleSearch = (value) => {
-    console.log("PASS", { value });
+
+    setSearchValue(value);
 
     const filterTable = data.filter(o =>
       Object.keys(o).some(k =>
@@ -263,7 +275,8 @@ const App = () => {
 
 
     <Flex justify="space-between" align="center" mb={4}>
-      <Input.Search placeholder="Search"
+      <Input.Search value={searchValue}
+                    placeholder="Search"
                     style={{
                       marginBottom: 16,
                       width: 200
