@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Table, Button, Space, Input } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Space, Input, Checkbox} from 'antd';
 import { Box, Flex, Text } from "@chakra-ui/react";
+
+
 
 
 const data = [];
@@ -27,25 +29,11 @@ const App = () => {
         [filterTable, setFilterTable] = useState();
 
 
-  const handleSearch = (value) => {
-    console.log("PASS", { value });
-
-    const filterTable = data.filter(o =>
-      Object.keys(o).some(k =>
-        String(o[k])
-          .toLowerCase()
-          .includes(value.toLowerCase())
-      )
-    );
-
-    setFilterTable(filterTable);
-  };
-
-
   const handleChange = (pagination, filters, sorter,filteredValue) => {
     console.log('Various parameters', pagination, filters, sorter);
     setFilteredInfo(filters);
     setSortedInfo(sorter);
+    // console.log(sorter)
   };
   const clearAll = () => {
     setFilteredInfo({});
@@ -61,6 +49,11 @@ const App = () => {
       sorter: (a, b) => a.customer_id - b.customer_id,
       sortOrder: sortedInfo.columnKey === 'customer_id' ? sortedInfo.order : null,
       ellipsis: true,
+      render: (text, record) => (
+        <a href={`https://example.com/customer/${record.customer_id}`} target="_blank" rel="noopener noreferrer">
+          {text}
+        </a>
+      ),
 
     },
     {
@@ -112,10 +105,97 @@ const App = () => {
       title: 'Purchase Date',
       dataIndex: 'purchase_date',
       key: 'purchase_date',
-      sorter: (a, b) => a.purchase_date - b.purchase_date,
+      sorter: (a, b) => new Date(a.purchase_date) - new Date(b.purchase_date),
       sortOrder: sortedInfo.columnKey === 'purchase_date' ? sortedInfo.order : null,
     },
   ];
+
+
+  const allColumnKeys = ["customer_id", "name", "age", "address", "state", "zip_code", "gender", "purchase_date"];
+  const checkBoxData = columns.map((m) => ({ key: m.key, title: m.title }));
+
+
+  const [selectedColumnKeys, setSelectedColumnKeys] = useState(allColumnKeys);
+  const [checkedList, setCheckedList] = useState(allColumnKeys);
+  const [indeterminate, setIndeterminate] = useState(true);
+  const [checkAll, setCheckAll] = React.useState(false);
+  const [tableColumns, setTableColumns] = useState(columns);
+
+  const onCheckAllChange = (e) => {
+    setCheckedList(e.target.checked ? allColumnKeys : []);
+    setIndeterminate(false);
+    setCheckAll(e.target.checked);
+  };
+
+  function isChecked(value) {
+    return checkedList.includes(value);
+  }
+
+  function handleSelection(key) {
+    const tempList = [...checkedList];
+    if (tempList.includes(key)) {
+      const index = tempList.indexOf(key);
+      tempList.splice(index, 1);
+    } else {
+      tempList.push(key);
+    }
+    setCheckedList(tempList);
+  }
+
+  function handleConfirmation() {
+    setSelectedColumnKeys(checkedList);
+  }
+
+  useEffect(() => {
+    setIndeterminate(
+      !!checkedList.length && checkedList.length < allColumnKeys.length
+    );
+    setCheckAll(checkedList.length === allColumnKeys.length);
+
+    return () => {};
+  }, [checkedList]);
+
+  useEffect(() => {
+    if (selectedColumnKeys) {
+      if (selectedColumnKeys.length) {
+        const newTableColumns = generateTableColumns(selectedColumnKeys);
+        setTableColumns(newTableColumns);
+      } else {
+        setTableColumns(columns);
+      }
+    }
+    return () => {};
+  }, [selectedColumnKeys, sortedInfo]);
+
+  const generateTableColumns = (selectedColumnKeys) => {
+    return selectedColumnKeys.map((key) => {
+      const originalColumn = columns.find((col) => col.key === key);
+      if (originalColumn) {
+        return {
+          ...originalColumn,
+          sorter: (a, b) => originalColumn.sorter(a, b),
+          sortOrder: sortedInfo.columnKey === originalColumn.key ? sortedInfo.order : null,
+        };
+      }
+      return null;
+    });
+  };
+
+
+  const handleSearch = (value) => {
+    console.log("PASS", { value });
+
+    const filterTable = data.filter(o =>
+      Object.keys(o).some(k =>
+        String(o[k])
+          .toLowerCase()
+          .includes(value.toLowerCase())
+      )
+    );
+
+    setFilterTable(filterTable);
+  };
+
 
 
   const onSelectChange = (newSelectedRowKeys) => {
@@ -181,29 +261,113 @@ const App = () => {
         Reports
       </Text>
 
-    <Input.Search placeholder="Search"
-                  style={{
-                    marginBottom: 8,
-                    width: 200
-                  }}
-                  enterButton
-                  onSearch={handleSearch}
-                  onChange={(e) => handleSearch(e.target.value)}
-    />
-    <Space
-      style={{
-        marginBottom: 16,
-      }}
-    >
-      <Button onClick={clearAll}>Clear filters and sorters</Button>
-    </Space>
+
+    <Flex justify="space-between" align="center" mb={4}>
+      <Input.Search placeholder="Search"
+                    style={{
+                      marginBottom: 16,
+                      width: 200
+                    }}
+                    enterButton
+                    onSearch={handleSearch}
+                    onChange={(e) => handleSearch(e.target.value)}
+      />
+      <Space
+        style={{
+          marginBottom: 16,
+        }}
+      >
+        <Button onClick={clearAll}>Clear filters and sorters</Button>
+
+
+      <Button
+        className="material-icons"
+        data-bs-toggle="modal"
+        data-bs-target="#exampleModal"
+      >
+        Column Settings
+      </Button>
+      </Space>
+      </Flex>
+
+      <div
+        className="modal fade"
+        id="exampleModal"
+        // tabIndex="-1"
+        aria-labelledby="exampleModalLabel"
+        aria-hidden="true"
+      >
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header ">
+              <h1 className="modal-title " id="exampleModalLabel">
+                Filter table{" "}
+              </h1>
+              <Button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></Button>
+            </div>
+            <div className="modal-body ">
+              <div className="modal-body d-flex flex-column">
+                <Checkbox
+                  indeterminate={indeterminate}
+                  onChange={onCheckAllChange}
+                  checked={checkAll}
+                >
+                  Select All
+                </Checkbox>
+              </div>
+              {checkBoxData.map((checkbox) => (
+                <div
+                  key={checkbox.key}
+                  className="modal-body d-flex flex-column"
+                >
+                  <Checkbox
+                    checked={isChecked(checkbox.key)}
+                    onChange={() => handleSelection(checkbox.key)}
+                  >
+                    {checkbox.title}
+                  </Checkbox>
+                </div>
+              ))}
+              <div className="modal-body d-flex flex-column">
+                {" "}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                  onClick={() => handleConfirmation()}
+                >
+                  confirm your selections
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <Table rowSelection={rowSelection}
-           columns={columns}
+           columns={tableColumns}
            dataSource={filterTable == null ? data : filterTable}
            onChange={handleChange}
            />
 
     </Box>
+
+
+
     );
 };
 export default App;
